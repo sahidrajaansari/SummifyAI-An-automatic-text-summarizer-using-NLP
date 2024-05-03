@@ -1,0 +1,11 @@
+For creating new anaconda enviorment
+conda create -n textS python=3.8 -y
+
+For Starting the enviorment
+conda activate textS
+
+For installation of the requirements
+pip install requirements.txt
+
+For training the model
+python main.py
