@@ -1,6 +1,11 @@
 from typing import Optional
 from transformers import AutoTokenizer, pipeline
 from textSummarizer.config.configuration import ConfigurationManager
+from pydantic import BaseModel
+
+class SummaryRequest(BaseModel):
+    text: str
+    maxSummaryLength: int
 
 
 class PredictionPipeline:
@@ -16,10 +21,7 @@ class PredictionPipeline:
 
     def predict(
         self,
-        request: str,
-        max_length: int = 128,
-        length_penalty: float = 0.8,
-        num_beams: int = 8,
+        request: SummaryRequest,
     ) -> Optional[str]:
         """
         Generates a summary for the given input text.
@@ -35,39 +37,21 @@ class PredictionPipeline:
         """
 
         try:
-            tokenizer = AutoTokenizer.from_pretrained(self.config.tokenizer_path)
-            pipe = pipeline(
-                "summarization", model=self.config.model_path, tokenizer=tokenizer
-            )
-            # Find the index of '=' to split the string
-            equal_index = request.find("=")
-
-            # Extract the text part (including the quotes)
-            text_part = request[equal_index + 2 :]
-
-            # Find the index of ' summary_length=' to split the string
-            summary_length_index = text_part.find(" summary_length=")
-
-            # Extract the text portion without quotes
-            text = text_part[: summary_length_index - 1]
-
-            # Extract the summary length
-            max_length = int(text_part[summary_length_index + 16 :])
-            
+            text = request.text
+            max_length = request.maxSummaryLength
             print(f"Summary Length: {max_length}, Text: {text}")
 
-            print("Dialogue:")
-            print(text)
+            tokenizer = AutoTokenizer.from_pretrained(self.config.tokenizer_path)
+            print(
+                f"Tokenizer max length: {tokenizer.model_max_length}"
+            )
+            gen_kwargs = {"length_penalty": 0.8, "num_beams":8, "max_length": max_length}
+            pipe = pipeline("summarization", model=self.config.model_path,tokenizer=tokenizer)
 
-            output = pipe(
-                text,
-                length_penalty,
-                num_beams,
-                max_length,
-            )[0]["summary_text"]
-            
+            output = pipe(text, **gen_kwargs)[0]["summary_text"]
             print("\nModel Summary:")
             print(output)
+
             return output
         except Exception as e:
             # Handle exceptions gracefully

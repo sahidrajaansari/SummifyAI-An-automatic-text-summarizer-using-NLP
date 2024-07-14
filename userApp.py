@@ -1,46 +1,79 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 from textSummarizer.pipeline.prediction import PredictionPipeline
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with specific frontend origins if you have them
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods, or specify methods like ["GET", "POST"]
+    allow_headers=["*"],  # Allow all headers, or specify headers like ["Content-Type"]
+)
 
 # Initialize PredictionPipeline once at startup
 pipeline = PredictionPipeline()
 
 
-class TextRequest(BaseModel):
-    text: str
-    summary_length: int
-
-
-@app.get("/")
+@app.get("/model/test/")
 async def index():
-    return RedirectResponse(url="/static/index.html")
+    json_response = {
+        "message": "Welcome to the Text Summarizer API. Please use the /model/predict endpoint to generate a summary."
+    }
+    return JSONResponse(content=json_response)
 
 
-@app.post("/predict")
-async def predict_route(request: TextRequest):
+# @app.post("/model/predict/")
+# async def generate_summary(request: SummaryRequest):
+#     try:
+#         # Ensure summaryLength is positive
+#         if request.summaryLength <= 0:
+#             raise HTTPException(status_code=400, detail="summaryLength must be a positive integer")
+
+#         print(request)
+#         # Generate summary
+#         summarized_text = "Hello world"
+#         return {"summary": summarized_text}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+
+class SummaryRequest(BaseModel):
+    text: str
+    maxSummaryLength: int
+
+
+@app.post("/model/predict/")
+async def generate_summary(request: SummaryRequest):
     try:
-        # Separate summary_length and text
-        summary_length = request.summary_length
+        # Extract data from the request
         text = request.text
+        max_summary_length = request.maxSummaryLength
+        print(f"text:{text} and max_summary_length:{max_summary_length}")
 
-        print(f"Summary Length: {summary_length}, Text: {text}")
-        
-        # Call predict method with separated inputs
-        summarized_text = pipeline.predict(str(request))
-        return {"summarized_text": summarized_text}
+        # Perform text summarization
+        # Replace `pipeline.predict(request)` with the actual prediction logic
+        summary = pipeline.predict(request)
+
+        # Return the summary as part of the response
+        return JSONResponse(content={"summary": summary})
+
+    except ValueError as ve:
+        # Handle specific errors, such as invalid data values
+        print(f"ValueError: {ve}")
+        raise HTTPException(status_code=400, detail=f"ValueError: {ve}")
+
     except Exception as e:
-        # Log the error for debugging purposes
-        print(f"An error occurred: {e}")
-        # Return a user-friendly error message
-        raise HTTPException(status_code=500, detail="An error occurred while processing the request")
+        # Handle unexpected errors
+        print(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="localhost", port=8080)
