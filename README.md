@@ -77,7 +77,7 @@ Email: sahidrajaansari7@gmail.com
 
 	
 ## 3. Create ECR repo to store/save docker image
-    - Save the URI: 566373416292.dkr.ecr.us-east-1.amazonaws.com/text-s
+    - Save the URI: 643978979635.dkr.ecr.ap-southeast-2.amazonaws.com/summifyai
 
 	
 ## 4. Create EC2 machine (Ubuntu) 
